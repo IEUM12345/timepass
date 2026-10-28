@@ -362,7 +362,7 @@ V.reco=()=>{const c=S.picks[S.step],r=reco(c),pg=S.page[c]||0,show=r.slice(pg*3,
    <div class="limit ${o.ok?'':'warn'}"><span>${o.ok?`최대 ${st}분 머무를 수 있어요`:`${st}분뿐이라 빠듯해요`}</span><span class="num">${hm(o.it.leave)}에 나오기</span></div>
    <div class="row"><div class="pills">${o.p.tags.map(x=>`<span>${x}</span>`).join('')}</div>${o.ok?`<button class="pick" data-choose="${o.p.id}">여기로</button>`:''}</div></div>`}).join('')}
  ${!r.some(o=>o.ok)?`<div class="warnbox"><span><b>이 조합으로는 시간이 모자라요.</b></span><div class="acts">${CAT[c].qmin&&!S.quick[c]?`<button data-q="1">${c==='food'?'간단히 먹기로':'포장으로'} 바꾸기</button>`:''}<button data-del="${c}">${CAT[c].label} 빼기</button></div></div>`:''}
- ${S.step===S.picks.length-1?`<div class="panel" style="gap:2px">추천 밖으로 가신다면<b style="color:var(--ink)">동편 구역 어디서든 ${hm(board()-gate().pos-1)}까지 탑승구로 출발</b></div>`:''}
+ ${S.step===S.picks.length-1?`<div class="panel" style="gap:2px">추천 밖으로 가신다면<b style="color:var(--ink)">동편 구역 어디서든 ${hm(board()-gate().pos-8)}까지 탑승구로 출발</b></div>`:''}
  ${r.length>3?`<button class="btn ghost sm" data-more="${c}">다른 후보 보기 (${Math.min(pg+1,Math.ceil(r.length/3))}/${Math.ceil(r.length/3)})</button>`:''}`};
 V.plan=(confirm)=>{const pl=plan(stops());const dep=pl.depart;const free=fl5(baseFree());
   const rows=[`<div class="r"><b class="t">${hm(pl.start)}</b><span>출국심사 출구 <small>${S.entered!=null?'실제 통과':'통과 예상'}</small></span><span></span></div>`];
