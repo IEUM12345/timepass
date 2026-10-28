@@ -1,0 +1,466 @@
+<title>타임패스 프로토타입</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: phone-width app column, centered; a demo panel for judges below it */
+:root{
+  --brand:#2348e0; --brand-2:#4a69f0; --brand-soft:#e6ebff; --ink:#111a42; --body:#2a3456; --muted:#5f6888;
+  --line:#dde2ee; --surface:#ffffff; --page:#e8ebf3; --card:#f3f5fa; --warn:#b4540a; --warn-soft:#fff0df;
+  --ok:#1b7f55; --ok-soft:#e3f5ec; --on-brand:#ffffff; --scan:#161b2e;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --brand:#5b78ff; --brand-2:#7b92ff; --brand-soft:#1d2546; --ink:#eef0f7; --body:#c9cfe2; --muted:#98a0b8;
+  --line:#2a3043; --surface:#151927; --page:#0b0d15; --card:#1c2132; --warn:#f2a24a; --warn-soft:#3a2a17;
+  --ok:#4cc38a; --ok-soft:#163327; --on-brand:#ffffff; --scan:#07080c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --brand:#5b78ff; --brand-2:#7b92ff; --brand-soft:#1d2546; --ink:#eef0f7; --body:#c9cfe2; --muted:#98a0b8;
+  --line:#2a3043; --surface:#151927; --page:#0b0d15; --card:#1c2132; --warn:#f2a24a; --warn-soft:#3a2a17;
+  --ok:#4cc38a; --ok-soft:#163327; --on-brand:#ffffff; --scan:#07080c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--brand-2);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.wrap{max-width:400px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.phone{background:var(--surface);border-radius:28px;overflow:hidden;min-height:780px;display:flex;flex-direction:column;position:relative;
+  box-shadow:0 1px 0 var(--line),0 24px 50px -26px rgba(20,30,80,.4)}
+@media (max-width:440px){.phone{border-radius:18px}}
+.top{display:flex;justify-content:space-between;align-items:center;padding:16px 20px 4px;gap:8px}
+.logo{font-weight:700;letter-spacing:.06em;font-size:16px}
+.top .back{background:none;border:0;font-size:22px;padding:0 6px 0 0;line-height:1}
+.lang{font-size:12px;color:var(--muted)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);padding:8px 20px 2px;position:relative}
+.steps::before{content:"";position:absolute;left:27px;right:27px;top:14px;height:2px;background:var(--line)}
+.steps .bar{position:absolute;left:27px;top:14px;height:2px;background:var(--brand)}
+.step{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);position:relative}
+.step:nth-child(3){align-items:center}.step:nth-child(4){align-items:flex-end}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--surface);border:2px solid var(--line)}
+.step.on{color:var(--brand);font-weight:700}.step.on .dot{border-color:var(--brand);background:var(--brand);box-shadow:inset 0 0 0 3px var(--surface)}
+.step.done .dot{border-color:var(--brand);background:var(--brand)}
+.screen{flex:1;display:flex;flex-direction:column;padding:12px 20px 22px;gap:14px}
+.meta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);gap:8px}
+.hero{background:var(--brand);color:var(--on-brand);border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:6px}
+.hero small{opacity:.85;font-size:13px}
+.big{font-size:62px;font-weight:600;line-height:1}
+.big span{font-size:22px;font-weight:600;margin:0 4px;font-family:var(--f-body)}
+.hero hr{border:0;border-top:1px solid rgba(255,255,255,.25);margin:10px 0 6px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.panel{background:var(--card);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;font-size:14px;color:var(--body)}
+.panel .li{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px;color:var(--ink)}
+.tag{font-size:12px;color:var(--muted)}.tag.ok{color:var(--brand);font-weight:700}
+.spacer{flex:1}
+.btn{border:0;border-radius:999px;background:var(--brand);color:var(--on-brand);font-weight:700;font-size:16px;padding:15px;width:100%}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.ghost{background:var(--brand-soft);color:var(--brand)}
+.btn.line{background:transparent;border:1.5px solid var(--brand);color:var(--brand)}
+.btn.sm{font-size:14px;padding:11px}
+.link{background:none;border:0;text-decoration:underline;color:var(--muted);font-size:14px;align-self:center}
+.full{margin:-12px -20px 0;background:var(--brand);color:var(--on-brand);padding:14px 20px 18px;display:flex;flex-direction:column;gap:8px}
+.full .when{font-size:42px;font-weight:600;line-height:1.05}
+.full .sub{font-size:19px;font-weight:700}
+.chip{background:rgba(255,255,255,.15);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:baseline}
+.band{margin:-12px -20px 0;background:var(--brand);color:var(--on-brand);padding:11px 20px;display:flex;justify-content:space-between;align-items:baseline;font-weight:700;gap:8px}
+.band b{font-size:17px}
+h2{font-size:21px;margin:0;font-weight:700;text-wrap:balance;line-height:1.35}
+.hint{font-size:13px;color:var(--muted);margin-top:-8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:16px 12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;position:relative}
+.tile b{font-size:16px}.tile small{font-size:12px;color:var(--muted)}
+.tile svg{width:24px;height:24px;stroke:var(--brand)}
+.tile.on{border-color:var(--brand);background:var(--brand-soft)}
+.tile .ord{position:absolute;top:10px;right:10px;width:24px;height:24px;border-radius:50%;background:var(--brand);color:#fff;font-size:13px;font-weight:700;display:grid;place-items:center}
+.budget{border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.budget.ok{background:var(--ok-soft)}.budget.ok b{color:var(--ok)}
+.budget.tight{background:var(--warn-soft)}.budget.tight b{color:var(--warn)}
+.budget.over{background:var(--warn-soft)}.budget.over b{color:var(--warn)}
+.budget.none{background:var(--card)}
+.list button{display:flex;justify-content:space-between;width:100%;background:none;border:0;border-bottom:1px solid var(--line);padding:15px 2px;text-align:left;font-size:15px}
+.list button small{color:var(--muted);font-size:12px;display:block}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--card);border-radius:12px;padding:4px}
+.seg button{border:0;background:transparent;border-radius:9px;padding:9px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.card{border:1px solid var(--line);border-radius:16px;padding:15px;display:flex;flex-direction:column;gap:9px}
+.card.bad{opacity:.55}
+.card .limit{background:var(--brand-soft);color:var(--brand);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;font-weight:700;font-size:14px;gap:8px}
+.card .limit.warn{background:var(--warn-soft);color:var(--warn)}
+.pills{display:flex;gap:6px;flex-wrap:wrap}.pills span{font-size:12px;background:var(--card);border-radius:6px;padding:3px 8px;color:var(--muted)}
+.pick{border:0;background:var(--brand);color:var(--on-brand);border-radius:999px;padding:8px 16px;font-weight:700;font-size:14px;white-space:nowrap}
+.note{font-size:13px;color:var(--muted);background:var(--card);border-radius:10px;padding:10px 12px}
+.stepper{display:flex;gap:6px;flex-wrap:wrap;font-size:12px}
+.stepper span{padding:4px 10px;border-radius:999px;background:var(--card);color:var(--muted)}
+.stepper span.cur{background:var(--brand);color:#fff;font-weight:700}
+.stepper span.done{background:var(--brand-soft);color:var(--brand)}
+.scan{background:var(--scan);border-radius:18px;height:220px;display:grid;place-items:center;position:relative;color:#d9dce5;font-size:13px}
+.bp{width:72%;background:#eceef3;border-radius:8px;padding:12px;transform:rotate(-3deg);color:#3a3f4b;font-size:11px;display:flex;flex-direction:column;gap:8px}
+.bc{height:34px;background:repeating-linear-gradient(90deg,#111 0 2px,transparent 2px 4px,#111 4px 5px,transparent 5px 8px)}
+.lock{background:var(--card);border-radius:12px;padding:12px;font-size:13px;color:var(--muted)}
+.bbar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--card)}
+.bbar i{display:block;height:100%}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px;background:var(--c)}
+.map{background:var(--card);border-radius:14px;padding:4px}
+.map svg{width:100%;height:auto;display:block}
+.tl{display:flex;flex-direction:column}
+.tl .r{display:grid;grid-template-columns:50px 1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;align-items:start}
+.tl .r b.t{font-family:var(--f-num);font-weight:600}
+.tl .r.hl{color:var(--brand);font-weight:700}
+.tl .r small{display:block;color:var(--muted);font-size:12px;font-weight:400}
+.ctl{display:flex;gap:4px}
+.ctl button{border:1px solid var(--line);background:var(--surface);border-radius:8px;font-size:12px;padding:3px 7px;color:var(--muted)}
+.warnbox{background:var(--warn-soft);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.warnbox b{color:var(--warn)}
+.warnbox .acts{display:flex;gap:6px;flex-wrap:wrap}
+.warnbox .acts button{border:1px solid var(--warn);background:transparent;color:var(--warn);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600}
+.okbadge{display:inline-block;font-size:11px;border-radius:4px;padding:1px 6px;margin-left:6px;background:rgba(255,255,255,.2);font-weight:600}
+.sticky{position:sticky;bottom:0;background:var(--surface);margin:0 -20px -22px;padding:12px 20px 16px;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.sheet-bg{position:absolute;inset:0;background:rgba(10,12,20,.5);display:flex;align-items:flex-end;z-index:5}
+.sheet{background:var(--surface);border-radius:22px 22px 0 0;width:100%;padding:22px 20px 26px;display:flex;flex-direction:column;gap:12px}
+.pill{align-self:flex-start;background:var(--brand-soft);color:var(--brand);border-radius:8px;padding:4px 10px;font-size:13px}
+.noti{border-radius:14px;background:var(--card);padding:12px 14px;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.noti small{color:var(--muted);font-size:12px}
+.noti.alert{background:var(--brand-soft)}
+.fine{font-size:12px;color:var(--muted);text-align:center}
+.end{margin:-12px -20px -22px;flex:1;background:var(--brand);color:var(--on-brand);padding:20px;display:flex;flex-direction:column;gap:14px}
+.end h1{font-size:38px;line-height:1.2;margin:16px 0 4px;font-weight:700}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kv div{background:rgba(255,255,255,.15);border-radius:14px;padding:14px}
+.kv b{font-size:28px;display:block}
+.end .btn{background:#fff;color:#2348e0}
+.demo{background:var(--surface);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--muted)}
+.demo b{color:var(--ink);font-size:14px}
+.demo .chips{display:flex;flex-wrap:wrap;gap:6px}
+.demo button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 11px;font-size:12px}
+.demo button.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:700}
+</style>
+
+<div class="wrap">
+  <div class="phone" id="phone"></div>
+  <div class="demo">
+    <b>시연 상황 바꿔 보기</b>
+    <div>가상 항공편 XX123 · 09:00 출발 · 탑승 시작 08:30 · 23번 탑승구 · 07:27 5번 출국장 동편에서 QR 스캔</div>
+    <div class="chips" id="scen"></div>
+    <div class="chips" id="jump"></div>
+  </div>
+</div>
+
+<script>
+/* ---------- data ---------- */
+const SCAN=447, EXP_ENTRY=465, BOARD0=510;
+const GATES={23:{name:'23번',pos:10},31:{name:'31번',pos:14}};
+const CAT={
+  food:{label:'식당',verb:'식사',min:18,typ:25,qmin:10,qtyp:12,sub:true,desc:'보통 20~30분'},
+  cafe:{label:'카페',verb:'커피·디저트',min:8,typ:12,qmin:3,qtyp:5,desc:'보통 5~15분'},
+  shop:{label:'면세점',verb:'쇼핑',min:10,typ:15,sub:true,desc:'보통 10~20분'},
+  rest:{label:'라운지·쉬기',verb:'휴식',min:15,typ:30,desc:'보통 20분 이상'}
+};
+const SUBS={
+  food:['한식','중식','일식','양식','아무거나 빠르게'],
+  shop:['화장품·향수','주류','담배','의류·잡화','기념품·식품']
+};
+const P=[
+ {id:'r1',cat:'food',sub:'한식',name:'식당 A',pos:3,wait:4,tags:['비빔밥·국밥'],to:true},
+ {id:'r2',cat:'food',sub:'한식',name:'식당 E',pos:-3,wait:2,tags:['정식','한산한 편']},
+ {id:'r3',cat:'food',sub:'한식',name:'식당 H',pos:7,wait:7,tags:['분식','포장 가능'],to:true},
+ {id:'r4',cat:'food',sub:'중식',name:'식당 D',pos:6,wait:5,tags:['면·밥'],to:true},
+ {id:'r5',cat:'food',sub:'중식',name:'식당 I',pos:-1,wait:3,tags:['딤섬']},
+ {id:'r6',cat:'food',sub:'일식',name:'식당 B',pos:5,wait:6,tags:['우동·덮밥'],to:true},
+ {id:'r7',cat:'food',sub:'일식',name:'식당 F',pos:8,wait:8,tags:['초밥']},
+ {id:'r8',cat:'food',sub:'일식',name:'식당 J',pos:2,wait:3,tags:['라멘']},
+ {id:'r9',cat:'food',sub:'양식',name:'식당 C',pos:2,wait:3,tags:['버거','포장 가능'],to:true},
+ {id:'r10',cat:'food',sub:'양식',name:'식당 G',pos:6,wait:4,tags:['파스타']},
+ {id:'r11',cat:'food',sub:'양식',name:'식당 K',pos:9,wait:2,tags:['샌드위치','포장 가능'],to:true},
+ {id:'c1',cat:'cafe',name:'카페 A',pos:3,wait:2,tags:['간단한 빵'],to:true},
+ {id:'c2',cat:'cafe',name:'카페 B',pos:4,wait:6,tags:['디저트'],to:true},
+ {id:'c3',cat:'cafe',name:'카페 C',pos:-4,wait:3,tags:['조용한 편']},
+ {id:'c4',cat:'cafe',name:'카페 D',pos:8,wait:2,tags:['탑승구 근처'],to:true},
+ {id:'c5',cat:'cafe',name:'카페 E',pos:12,wait:1,tags:['31번 근처'],to:true},
+ {id:'d1',cat:'shop',sub:'화장품·향수',name:'면세점 A',pos:2,wait:2,tags:['화장품 전문']},
+ {id:'d2',cat:'shop',sub:'화장품·향수',name:'면세점 B',pos:6,wait:3,tags:['향수 강함']},
+ {id:'d3',cat:'shop',sub:'화장품·향수',name:'면세점 C',pos:-2,wait:1,tags:['한산한 편']},
+ {id:'d4',cat:'shop',sub:'주류',name:'주류 매장 A',pos:5,wait:2,tags:['위스키·와인']},
+ {id:'d5',cat:'shop',sub:'주류',name:'주류 매장 B',pos:-3,wait:1,tags:['전통주']},
+ {id:'d6',cat:'shop',sub:'담배',name:'담배 매장 A',pos:4,wait:1,tags:['빠른 계산']},
+ {id:'d7',cat:'shop',sub:'담배',name:'담배 매장 B',pos:9,wait:2,tags:['탑승구 근처']},
+ {id:'d8',cat:'shop',sub:'의류·잡화',name:'잡화 매장 A',pos:3,wait:1,tags:['가방·지갑']},
+ {id:'d9',cat:'shop',sub:'의류·잡화',name:'잡화 매장 B',pos:7,wait:1,tags:['선글라스·시계']},
+ {id:'d10',cat:'shop',sub:'기념품·식품',name:'기념품 매장 A',pos:1,wait:2,tags:['김·홍삼']},
+ {id:'d11',cat:'shop',sub:'기념품·식품',name:'기념품 매장 B',pos:6,wait:1,tags:['한국 과자']},
+ {id:'l1',cat:'rest',name:'라운지 A',pos:5,wait:2,tags:['유료·카드 혜택','샤워']},
+ {id:'l2',cat:'rest',name:'휴식 공간 B',pos:9,wait:0,tags:['무료','탑승구 근처'],to:true},
+ {id:'l3',cat:'rest',name:'라운지 C',pos:-3,wait:3,tags:['유료','조용한 편']}
+];
+const byId=id=>P.find(p=>p.id===id);
+
+/* ---------- state ---------- */
+const S={scr:'wait',hist:[],picks:[],subs:{},chosen:{},quick:{},page:{},step:0,entered:null,fav:'cam',
+  scen:{delay:false,gate:false,late:false}};
+const board=()=>BOARD0+(S.scen.delay?20:0);
+const gate=()=>GATES[S.scen.gate?31:23];
+const expEntry=()=>S.scen.late?475:EXP_ENTRY;
+const entryT=()=>S.entered!=null?S.entered:expEntry();
+const hm=m=>{m=Math.round(m);const h=Math.floor(m/60)%24,mm=((m%60)+60)%60;return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0')};
+const fl5=m=>Math.max(0,Math.floor(m/5)*5);
+const minOf=(cat,q)=>q&&CAT[cat].qmin?CAT[cat].qmin:CAT[cat].min;
+const typOf=(cat,q)=>q&&CAT[cat].qtyp?CAT[cat].qtyp:CAT[cat].typ;
+const baseDepart=()=>board()-gate().pos;
+const baseFree=()=>baseDepart()-entryT();
+
+/* stops in pick order; unchosen picks become placeholders that reserve time */
+function stops(override){
+  return S.picks.map((cat,i)=>{
+    const id=override&&override.cat===cat?override.id:S.chosen[cat];
+    const q=!!S.quick[cat];
+    if(id){const p=byId(id);return {cat,q,p,pos:p.pos,wait:p.wait,ph:false}}
+    const prev=i>0?S.picks[i-1]:null; const pp=prev&&S.chosen[prev]?byId(S.chosen[prev]).pos:Math.min(4,gate().pos);
+    return {cat,q,p:null,pos:pp,wait:3,ph:true};
+  });
+}
+function plan(st){
+  let t=entryT(),pos=0,fixed=0;const segs=[];
+  st.forEach((s,i)=>{const w=Math.abs(s.pos-pos)+(i>0?1:0);s.walk=w;fixed+=w+s.wait;pos=s.pos});
+  const wg=Math.abs(gate().pos-pos)+(st.length?1:0);fixed+=wg;
+  const avail=board()-t-fixed;
+  const mins=st.map(s=>minOf(s.cat,s.q)),typs=st.map(s=>typOf(s.cat,s.q));
+  const minSum=mins.reduce((a,b)=>a+b,0),typSum=typs.reduce((a,b)=>a+b,0)||1;
+  const feasible=avail>=minSum;const extra=Math.max(0,avail-minSum);
+  const items=st.map((s,i)=>{
+    const stay=feasible?mins[i]+extra*typs[i]/typSum:Math.max(0,mins[i]*avail/Math.max(minSum,1));
+    t+=s.walk;const arrive=t;t+=s.wait;t+=stay;
+    segs.push({k:'walk',v:s.walk},{k:'wait',v:s.wait},{k:'stay',v:stay,cat:s.cat});
+    return {...s,arrive,stay,leave:t,min:mins[i]};
+  });
+  segs.push({k:'walk',v:wg});
+  const depart=st.length?board()-wg:baseDepart();
+  if(!st.length)segs.unshift({k:'free',v:Math.max(0,depart-entryT())},);
+  return {items,depart,wg,feasible,avail,minSum,extra,segs,start:entryT()};
+}
+function reco(cat){
+  const sub=S.subs[cat];
+  let c=P.filter(p=>p.cat===cat&&(!sub||sub==='아무거나 빠르게'||p.sub===sub));
+  if(sub==='아무거나 빠르게')c=c.filter(p=>p.wait<=4);
+  const g=gate().pos;
+  const r=c.map(p=>{const pl=plan(stops({cat,id:p.id}));const it=pl.items[S.picks.indexOf(cat)];
+    const onRoute=p.pos>=0&&p.pos<=g;return {p,it,pl,ok:pl.feasible&&it.stay>=it.min,onRoute,toGate:Math.abs(g-p.pos)}});
+  r.sort((a,b)=>(b.ok-a.ok)||(b.onRoute-a.onRoute)||(b.it.stay-a.it.stay));
+  return r;
+}
+function estimate(picks){
+  const n=picks.length;if(!n)return null;
+  const typ=picks.reduce((a,c)=>a+CAT[c].typ,0)+n*5;
+  const min=picks.reduce((a,c)=>a+(CAT[c].qmin||CAT[c].min),0)+n*5;
+  const f=baseFree();
+  if(typ<=f)return {k:'ok',t:'여유 있어요',d:`보통 걸리는 시간을 다 써도 ${f-typ}분쯤 남아요.`};
+  if(min<=f)return {k:'tight',t:'빠듯하지만 가능해요',d:`${picks.includes('food')?'식사는 간단히, ':''}${picks.includes('cafe')?'카페는 포장으로 ':''}하면 ${f}분 안에 모두 들를 수 있어요.`.replace(/, $/,'')};
+  return {k:'over',t:'시간이 모자라요',d:`가장 짧게 해도 약 ${min}분이 필요해요. 하나를 빼는 걸 추천해요.`};
+}
+
+/* ---------- ui helpers ---------- */
+const ic={
+ food:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 2-2 6 0 8v10"/></svg>',
+ cafe:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z"/><path d="M16 11h2a2 2 0 0 1 0 4h-2M8 3v3M12 3v3"/></svg>',
+ shop:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+ rest:'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/><path d="M3 12a2 2 0 0 1 4 0v2h10v-2a2 2 0 0 1 4 0v5H3v-5z"/></svg>'
+};
+const stageOf={wait:0,pass:0,free:0,sub:0,reco:0,plan:0,still:0,enter:1,alerts:1,go:2};
+function band(){const pl=plan(stops());const d=S.picks.length&&S.picks.every(c=>S.chosen[c])?pl.depart:baseDepart();
+  return `<div class="band"><b class="num">${hm(d)}까지 탑승구로</b><span>자유 약 <b class="num">${fl5(baseFree())}분</b></span></div>`}
+function stepper(){return `<div class="stepper">${S.picks.map((c,i)=>`<span class="${i===S.step?'cur':S.chosen[c]?'done':''}">${i+1}. ${CAT[c].label}${S.chosen[c]?' ✓':''}</span>`).join('')}<span>탑승구</span></div>`}
+function bbar(pl){
+  const tot=board()-pl.start;const col={walk:'var(--line)',wait:'#b7c3f2',free:'var(--brand)',gate:'var(--ink)'};
+  const sc={food:'#2348e0',cafe:'#6c86ff',shop:'#0f8a8a',rest:'#8a5cd6'};
+  const used=pl.segs.reduce((a,s)=>a+s.v,0);const buf=Math.max(0,tot-used);
+  return `<div class="bbar" role="img" aria-label="탑승 시작까지 시간 사용">${pl.segs.map(s=>`<i style="width:${Math.max(0,s.v)/tot*100}%;background:${s.k==='stay'?sc[s.cat]:col[s.k]}"></i>`).join('')}${buf?`<i style="width:${buf/tot*100}%;background:var(--card)"></i>`:''}</div>
+  <div class="legend"><span style="--c:var(--line)">걷기</span><span style="--c:#b7c3f2">매장 대기</span>${S.picks.map(c=>`<span style="--c:${sc[c]}">${CAT[c].label}</span>`).join('')}</div>`;
+}
+function map(pl,label){
+  const g=gate().pos,X=p=>22+(p+5)*15.5;const ys=[52,112];
+  let pts=[[X(0),82]];const pins=pl.items.filter(i=>i.p).map((it,i)=>{const y=ys[i%2];pts.push([X(it.pos),y]);return {x:X(it.pos),y,it,i}});
+  pts.push([X(g),82]);
+  const path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1]).join(' ');
+  return `<svg viewBox="0 0 340 170" role="img" aria-label="출국심사 출구에서 들를 곳을 거쳐 ${gate().name} 탑승구까지 가는 순서">
+  <rect x="10" y="70" width="320" height="24" rx="12" fill="var(--line)"/>
+  <rect x="12" y="8" width="44" height="20" rx="5" fill="var(--surface)"/><text x="34" y="22" font-size="11" text-anchor="middle" fill="var(--muted)">${label}</text>
+  <text x="${X(-4.6)}" y="163" font-size="9" fill="var(--muted)">← 탑승구 반대 방향</text>
+  <path d="${path}" fill="none" stroke="var(--brand)" stroke-width="2.5" stroke-dasharray="5 4"/>
+  <rect x="${X(0)-9}" y="73" width="18" height="18" rx="4" fill="var(--ink)"/><text x="${X(0)}" y="86" font-size="9" text-anchor="middle" fill="var(--surface)" font-weight="700">출</text>
+  <text x="${X(0)}" y="108" font-size="9" text-anchor="middle" fill="var(--muted)">${pins.length&&pins[0].y===112?'':'출국심사 출구'}</text>
+  ${pins.map(o=>`<circle cx="${o.x}" cy="${o.y}" r="11" fill="var(--brand)"/><text x="${o.x}" y="${o.y+4}" font-size="11" text-anchor="middle" fill="#fff" font-weight="700">${o.i+1}</text>
+   <text x="${o.x}" y="${o.y<82?o.y-28:o.y+24}" font-size="10" text-anchor="middle" fill="var(--ink)" font-weight="700">${o.it.p.name}</text>
+   <text x="${o.x}" y="${o.y<82?o.y-16:o.y+36}" font-size="9" text-anchor="middle" fill="var(--muted)">${hm(o.it.leave)} 나오기</text>`).join('')}
+  <rect x="${X(g)-16}" y="70" width="32" height="24" rx="6" fill="var(--ink)"/><text x="${X(g)}" y="86" font-size="10" text-anchor="middle" fill="var(--surface)" font-weight="700">${g===10?'23':'31'}</text>
+  <text x="${Math.min(X(g),306)}" y="163" font-size="9" text-anchor="middle" fill="var(--muted)">탑승 ${hm(board())}</text>
+  </svg>`;
+}
+function issues(pl){
+  const out=[];
+  pl.items.forEach(it=>{if(it.p&&(it.stay<it.min||!pl.feasible)){
+    const canQ=CAT[it.cat].qmin&&!it.q;
+    out.push(`<div class="warnbox"><span><b>${it.p.name}</b>은(는) 지금 시간으로는 빠듯해요 (최대 ${Math.max(0,Math.floor(it.stay))}분).</span>
+     <div class="acts">${canQ?`<button data-quick="${it.cat}">${it.cat==='food'?'간단히 먹기로':'포장으로'} 바꾸기</button>`:''}<button data-swap="${it.cat}">다른 곳 보기</button><button data-del="${it.cat}">이 일정 빼기</button></div></div>`)}});
+  return [...new Set(out)].slice(0,2).join('');
+}
+
+/* ---------- screens ---------- */
+const V={};
+V.wait=()=>`
+ <div class="meta"><span>📍 5번 출국장 동편 · 꺾이는 두 번째 지점</span><span class="num">${hm(SCAN)} 기준</span></div>
+ <div class="hero"><small>이 지점부터 남은 대기</small>
+  <div class="big num"><span>약</span>${expEntry()-SCAN}<span>분</span></div><hr>
+  <div class="row"><span>출국심사 통과 예상</span><b class="num" style="font-size:24px">${hm(expEntry())}</b></div></div>
+ <div class="panel">탑승권을 비추면 탑승 전 자유 시간을 계산하고, 하고 싶은 것들을 시간 안에 다 할 수 있게 동선을 짜 드려요.
+  <div class="li"><span>남은 대기</span><span class="tag ok">확인 완료</span></div>
+  <div class="li"><span>탑승 전 자유 시간</span><span class="tag">탑승권 필요</span></div>
+  <div class="li"><span>할 일 여러 개, 순서대로 동선 짜기</span><span class="tag">탑승권 필요</span></div></div>
+ <div class="spacer"></div>
+ <button class="btn" data-go="pass">탑승권 비추기 ›</button>
+ <button class="link" data-go="wait">남은 대기만 볼게요</button>`;
+V.pass=()=>`
+ <h2>탑승권 비추기</h2>
+ <div class="seg"><button data-fav="cam" class="${S.fav==='cam'?'on':''}">카메라로 찍기 · 종이</button><button data-fav="shot" class="${S.fav==='shot'?'on':''}">스크린샷 · 모바일</button></div>
+ <div class="scan"><div class="bp"><div class="row"><span>BOARDING PASS</span><span>XX123</span></div><div class="bc"></div></div>
+  <span style="position:absolute;bottom:14px">바코드가 네모 안에 들어오게 비춰 주세요</span></div>
+ <div class="lock">🔒 편명·날짜만 안내에 사용해요. 이름·예약번호는 저장하지 않아요.</div>
+ <div class="spacer"></div>
+ <button class="btn" data-go="free">동의하고 계속</button>
+ <div class="fine">인식이 안 되나요? <u>편명 직접 입력</u></div>`;
+V.free=()=>{
+  const f=baseFree(),e=estimate(S.picks);
+  if(f<20)return `<div class="full"><small>XX123 · ${gate().name} 탑승구 · 탑승 시작 ${hm(board())}</small><div class="when num">${hm(baseDepart())}까지</div><div class="sub">탑승구로 출발</div></div>
+   <div class="warnbox"><span><b>자유 시간이 ${Math.max(0,f)}분뿐이에요.</b> 들르기보다 바로 탑승구로 가시는 걸 추천해요 · 도보 ${gate().pos}분</span></div>
+   <div class="spacer"></div><button class="btn" data-go="go">바로 탑승구로</button>`;
+  return `
+ <div class="full"><small style="opacity:.85">XX123 · ${gate().name} 탑승구 · 탑승 시작 ${hm(board())}</small>
+  <div class="when num">${hm(baseDepart())}까지</div><div class="sub">탑승구로 출발</div>
+  <div class="chip"><span>${hm(entryT())} 통과 ${S.entered!=null?'(확정)':'예상'} · 자유 시간</span><b class="num" style="font-size:20px">약 ${fl5(f)}분</b></div></div>
+ <h2 style="margin-top:4px">탑승 전까지 무엇을 하실 건가요?</h2>
+ <div class="hint">여러 개 골라도 돼요. 고른 순서대로 들르는 동선을 짜 드려요.</div>
+ <div class="grid2">${Object.keys(CAT).map(c=>{const i=S.picks.indexOf(c);
+   return `<button class="tile ${i>=0?'on':''}" data-toggle="${c}" aria-pressed="${i>=0}">${i>=0?`<span class="ord">${i+1}</span>`:''}${ic[c]}<b>${CAT[c].label}</b><small>${CAT[c].desc}</small></button>`}).join('')}</div>
+ ${e?`<div class="budget ${e.k}"><b>${e.t}</b><span>${e.d}</span></div>`:`<div class="budget none">하나만 골라도, 여러 개 골라도 돼요.</div>`}
+ <div class="spacer"></div>
+ <button class="btn" data-startpicks="1" ${S.picks.length?'':'disabled'}>${S.picks.length?`${S.picks.map(c=>CAT[c].label).join(' → ')} 순서로 고르기`:'하나 이상 골라 주세요'}</button>
+ <button class="link" data-go="go">시간만 볼게요</button>`};
+V.sub=()=>{const c=S.picks[S.step];
+  return band()+stepper()+`
+ <h2>${c==='food'?'어떤 음식을 드실 건가요?':'어떤 품목을 보실 건가요?'}</h2>
+ <div class="hint">${c==='food'?'고르신 종류의 식당만 보여 드려요.':'고르신 품목을 파는 매장만 보여 드려요.'}</div>
+ <div class="list">${SUBS[c].map(x=>{const n=P.filter(p=>p.cat===c&&(x==='아무거나 빠르게'?p.wait<=4:p.sub===x)).length;
+   return `<button data-sub="${x}"><span>${x}<small>${x==='아무거나 빠르게'?'대기가 짧은 곳 위주':'후보 '+n+'곳'}</small></span><span>›</span></button>`}).join('')}</div>`};
+V.reco=()=>{const c=S.picks[S.step],r=reco(c),pg=S.page[c]||0,show=r.slice(pg*3,pg*3+3);const later=S.picks.slice(S.step+1).filter(x=>!S.chosen[x]);
+    return band()+stepper()+`
+ <h2>${S.subs[c]&&S.subs[c]!=='아무거나 빠르게'?S.subs[c]+' ':''}${CAT[c].label} 추천</h2>
+ ${CAT[c].qmin?`<div class="seg"><button data-q="0" class="${!S.quick[c]?'on':''}">${c==='food'?'앉아서 식사':'매장에서'}</button><button data-q="1" class="${S.quick[c]?'on':''}">${c==='food'?'간단히·포장':'포장'}</button></div>`:''}
+ <div class="tag">탑승구 가는 길 순서 · ${hm(entryT())} 통과 ${S.entered!=null?'확정':'예상'} 기준</div>
+ ${later.length?`<div class="note">뒤에 들를 ${later.map(x=>CAT[x].label).join('·')} 시간(최소 ${later.reduce((a,x)=>a+minOf(x,S.quick[x]),0)}분)을 미리 남겨 두고 계산했어요.</div>`:''}
+ ${show.map(o=>{const st=Math.floor(o.it.stay);
+   return `<div class="card ${o.ok?'':'bad'}"><div class="row"><b style="font-size:17px">${o.p.name}</b><span class="tag">${o.onRoute?'탑승구 가는 길':o.p.pos<0?'탑승구 반대 방향':'탑승구 지나서'}</span></div>
+   <div class="tag">${o.p.sub?o.p.sub+' · ':''}도보 ${o.it.walk}분 · 예상 대기 ${o.p.wait}분 · 탑승구까지 ${o.toGate}분</div>
+   <div class="limit ${o.ok?'':'warn'}"><span>${o.ok?`최대 ${st}분 머무를 수 있어요`:`${st}분뿐이라 빠듯해요`}</span><span class="num">${hm(o.it.leave)}에 나오기</span></div>
+   <div class="row"><div class="pills">${o.p.tags.map(x=>`<span>${x}</span>`).join('')}</div>${o.ok?`<button class="pick" data-choose="${o.p.id}">여기로</button>`:''}</div></div>`}).join('')}
+ ${!r.some(o=>o.ok)?`<div class="warnbox"><span><b>이 조합으로는 시간이 모자라요.</b></span><div class="acts">${CAT[c].qmin&&!S.quick[c]?`<button data-q="1">${c==='food'?'간단히 먹기로':'포장으로'} 바꾸기</button>`:''}<button data-del="${c}">${CAT[c].label} 빼기</button></div></div>`:''}
+ ${S.step===S.picks.length-1?`<div class="panel" style="gap:2px">추천 밖으로 가신다면<b style="color:var(--ink)">동편 구역 어디서든 ${hm(board()-gate().pos-1)}까지 탑승구로 출발</b></div>`:''}
+ ${r.length>3?`<button class="btn ghost sm" data-more="${c}">다른 후보 보기 (${Math.min(pg+1,Math.ceil(r.length/3))}/${Math.ceil(r.length/3)})</button>`:''}`};
+V.plan=(confirm)=>{const pl=plan(stops());const dep=pl.depart;const free=fl5(baseFree());
+  const rows=[`<div class="r"><b class="t">${hm(pl.start)}</b><span>출국심사 출구 <small>${S.entered!=null?'실제 통과':'통과 예상'}</small></span><span></span></div>`];
+  pl.items.forEach((it,i)=>{rows.push(`<div class="r"><b class="t">${hm(it.arrive)}</b><span>${i+1}. ${it.p.name} 도착 <small>${it.p.sub||CAT[it.cat].label}${it.q?' · '+(it.cat==='food'?'간단히':'포장'):''} · 예상 대기 ${it.p.wait}분 · 최대 ${Math.max(0,Math.floor(it.stay))}분</small></span>
+    <span class="ctl">${i>0?`<button data-up="${i}" aria-label="${it.p.name} 순서 앞으로">↑</button>`:''}<button data-swap="${it.cat}">바꾸기</button><button data-del="${it.cat}" aria-label="${it.p.name} 빼기">×</button></span></div>
+    <div class="r hl"><b class="t">${hm(it.leave)}</b><span>${it.p.name}에서 나오기</span><span></span></div>`)});
+  rows.push(`<div class="r hl"><b class="t">${hm(dep)}</b><span>${gate().name} 탑승구로 출발 <small>도보 ${pl.wg}분</small></span><span></span></div>`);
+  rows.push(`<div class="r"><b class="t">${hm(board())}</b><span>탑승 시작 <small>마감 ${hm(board()+20)}</small></span><span></span></div>`);
+  const spare=pl.feasible?Math.floor(pl.extra):0;
+  return `<div class="band"><b class="num">${hm(dep)}까지 탑승구로${confirm?'<span class="okbadge">확정</span>':''}</b><span>들를 곳 <b>${pl.items.length}곳</b></span></div>
+ ${confirm?`<div class="note">${hm(pl.start)}에 들어오셨어요. 실제 시각으로 다시 계산했어요${S.entered>expEntry()-0&&S.entered>EXP_ENTRY?' · 늦어진 만큼 머무는 시간이 줄었어요':''}.</div>`:''}
+ ${issues(pl)}
+ <div class="panel" style="gap:8px"><div class="row"><b style="color:var(--ink)">탑승 시작까지 ${board()-pl.start}분, 이렇게 써요</b></div>${bbar(pl)}</div>
+ <div class="map">${map(pl,confirm?'확정':'예상')}</div>
+ <div class="tl">${rows.join('')}</div>
+ ${pl.feasible&&spare>=10&&S.picks.length<4?`<button class="btn ghost sm" data-go="free">+ 하나 더 넣기 · 여유 ${spare}분</button>`:''}
+ ${!confirm?`<div class="grid2"><button class="btn line sm" data-go="alarm">🔔 나올 시각 알림</button><button class="btn ghost sm" data-go="free">할 일 다시 고르기</button></div>
+ <div class="tag">들어오시면 실제 시각으로 다시 계산해 드려요.</div>
+ <div class="sticky"><span class="tag" style="flex:1">출국심사를 마치셨나요?</span><button class="btn" style="width:auto;padding:13px 30px" data-go="enter">들어왔어요</button></div>`
+ :`<div class="spacer"></div><button class="btn" data-go="alerts">머무는 동안 알림 보기 ›</button>`}`};
+V.alarm=()=>band()+`
+ <h2>나올 시각마다 알려 드릴까요?</h2>
+ <div class="panel">들를 곳마다 나올 시각 5분 전과 정각에 카카오 알림톡을 보내 드려요. 탑승 후 번호는 자동으로 지워져요.
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px" class="num">010-••••-••••</div></div>
+ <div class="tag">알림은 선택이에요. 번호가 없어도 이 화면을 다시 열면 항상 최신 시각으로 다시 계산해 보여 드려요.</div>
+ <div class="spacer"></div><button class="btn" data-go="plan">알림 받기 (시연)</button>`;
+V.enter=()=>V.plan(false).replace(/<div class="sticky">[\s\S]*<\/div>$/,'')+`
+ <div class="sheet-bg"><div class="sheet"><span class="pill">🕒 ${hm(expEntry())} · 출국심사 통과 예상 시각</span>
+  <h2 style="font-size:25px">들어오셨나요?</h2>
+  <div class="tag" style="font-size:14px">누르신 시각부터 다시 계산해 드려요. 누르지 않으면 예상 시각대로 안내할게요.</div>
+  <button class="btn" data-entered="1">들어왔어요</button><button class="btn ghost" data-go="still">아직이에요</button></div></div>`;
+V.still=()=>`
+ <div class="hero"><small>아직 줄에 계신가요? 최신 대기로 다시 잡았어요</small>
+  <div class="big num"><span>약</span>6<span>분</span></div><hr>
+  <div class="row"><span>출국심사 통과 예상</span><b class="num" style="font-size:24px">${hm(expEntry()+8)}</b></div></div>
+ <div class="panel">고르신 곳은 그대로 두고, 들어오신 시각에 머무는 시간을 다시 나눠요. 빠듯해지면 포장으로 바꾸거나 하나를 빼자고 먼저 알려 드려요.</div>
+ <div class="spacer"></div><button class="btn" data-entered="8">들어왔어요</button>`;
+V.confirm=()=>V.plan(true);
+V.alerts=()=>{const pl=plan(stops());const n=[];
+  pl.items.forEach((it,i)=>{const nx=pl.items[i+1];
+    n.push(`<div class="noti"><small>${hm(it.leave-5)} · 알림톡</small>5분 뒤 ${it.p.name}에서 나오실 시간이에요.</div>`);
+    n.push(`<div class="noti"><small>${hm(it.leave)} · 알림톡</small>${it.p.name}에서 나오실 시간이에요 · ${nx?`다음 ${nx.p.name}까지 도보 ${nx.walk}분`:`${gate().name} 탑승구까지 도보 ${pl.wg}분`}</div>`)});
+  return band()+`<h2>머무는 동안 이렇게 알려 드려요</h2>${n.join('')}
+  ${S.scen.delay?`<div class="noti alert"><small>변경 · 출발 지연</small><b>출발이 20분 늦어졌어요. 머무는 시간을 다시 나눴어요.</b> 탑승구로는 ${hm(pl.depart)}까지 출발하시면 돼요.</div>`:''}
+  ${S.scen.gate?`<div class="noti alert"><small>변경 · 탑승구</small><b>탑승구가 31번으로 바뀌었어요.</b> 걷는 거리가 늘어 ${hm(pl.depart)}까지 출발하셔야 해요.</div>`:''}
+  ${!S.scen.delay&&!S.scen.gate?`<div class="note">아래 ‘시연 상황 바꿔 보기’에서 지연이나 탑승구 변경을 켜 보세요. 방송은 “지연”까지만 알려 주지만, 타임패스는 그래서 몇 시까지 머물러도 되는지 다시 계산해 알려 드려요.</div>`:''}
+  <div class="spacer"></div><button class="btn" data-go="go">출발 시각 화면 보기 ›</button>`};
+V.go=()=>{const pl=plan(stops());const wg=S.picks.length?pl.wg:gate().pos;
+  return `<div class="end"><span class="num" style="opacity:.85">${hm(pl.depart-5)} 알림</span>
+  <h1>지금 탑승구로<br>출발하세요</h1>
+  <div class="kv"><div><small>탑승구</small><b class="num">${gate().name}</b></div><div><small>도보</small><b class="num">${wg}분</b></div></div>
+  <div style="font-size:14px">탑승 시작 ${hm(board())} · ${hm(pl.depart+wg)} 도착 예정 · 마감 ${hm(board()+20)}</div>
+  <div class="spacer"></div><button class="btn">길 보기 ›</button>
+  <div style="background:var(--surface);color:var(--ink);border-radius:14px;padding:14px;font-size:14px">다음 출국엔 <b>스마트패스</b>로 줄을 더 짧게 ›</div>
+  <div style="font-size:12px;opacity:.85;text-align:center">참고 안내이며, 탑승은 항공사 안내와 탑승 방송이 우선합니다.</div>
+  <button class="link" style="color:#fff" data-reset="1">처음부터 다시 보기</button></div>`};
+
+/* ---------- render ---------- */
+const phone=document.getElementById('phone');
+function render(){
+  const k=S.scr==='confirm'?'confirm':S.scr;
+  const st=k==='confirm'?1:(stageOf[k]??0);
+  phone.innerHTML=`<div class="top"><span style="display:flex;align-items:center">${S.hist.length?'<button class="back" data-back="1" aria-label="뒤로">‹</button>':''}<span class="logo">TIMEPASS</span></span><span class="lang">🌐 한국어 · EN · 中文 · 日本語</span></div>
+   <div class="steps"><div class="bar" style="width:calc((100% - 54px) * ${st/2})"></div>${['대기 줄','면세구역','탑승구'].map((n,i)=>`<div class="step ${i===st?'on':i<st?'done':''}"><span class="dot"></span>${n}</div>`).join('')}</div>
+   <div class="screen">${V[k]()}</div>`;
+  document.getElementById('scen').innerHTML=[['delay','출발 20분 지연'],['gate','탑승구 31번으로 변경'],['late','출국심사 늦어짐 (+10분)']].map(([k,l])=>`<button class="${S.scen[k]?'on':''}" data-scen="${k}" aria-pressed="${S.scen[k]}">${l}</button>`).join('');
+  document.getElementById('jump').innerHTML=[['wait','남은 대기'],['free','할 일 고르기'],['plan','내 동선'],['confirm','들어온 뒤'],['alerts','알림'],['go','출발']].map(([k,l])=>`<button class="${S.scr===k?'on':''}" data-jump="${k}">${l}</button>`).join('')+`<button data-reset="1">처음부터</button>`;
+}
+function go(s,push=true){if(push&&S.scr!==s)S.hist.push(S.scr);S.scr=s;render();window.scrollTo({top:0})}
+function nextStep(){
+  const i=S.picks.findIndex(c=>!S.chosen[c]);
+  if(i<0){go(S.entered!=null?'confirm':'plan');return}
+  S.step=i;const c=S.picks[i];go(CAT[c].sub&&!S.subs[c]?'sub':'reco');
+}
+function ensureDemo(){ if(!S.picks.length){S.picks=['food','cafe'];S.subs.food='한식'} S.picks.forEach(c=>{if(!S.chosen[c]){const r=reco(c).find(o=>o.ok)||reco(c)[0];if(r)S.chosen[c]=r.p.id}})}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+  if(d.back){S.scr=S.hist.pop()||'wait';render();return}
+  if(d.fav){S.fav=d.fav;render();return}
+  if(d.toggle){const c=d.toggle,i=S.picks.indexOf(c);if(i>=0){S.picks.splice(i,1);delete S.chosen[c]}else S.picks.push(c);render();return}
+  if(d.startpicks){nextStep();return}
+  if(d.sub){const c=S.picks[S.step];S.subs[c]=d.sub;S.page[c]=0;if(d.sub==='아무거나 빠르게'&&CAT[c].qmin)S.quick[c]=true;go('reco');return}
+  if(d.q!==undefined){const c=S.picks[S.step];S.quick[c]=d.q==='1';render();return}
+  if(d.more){const c=d.more,n=Math.ceil(reco(c).length/3);S.page[c]=((S.page[c]||0)+1)%n;render();return}
+  if(d.choose){const p=byId(d.choose);S.chosen[p.cat]=p.id;nextStep();return}
+  if(d.quick){S.quick[d.quick]=true;render();return}
+  if(d.swap){const c=d.swap;delete S.chosen[c];S.step=S.picks.indexOf(c);S.page[c]=0;go(CAT[c].sub&&!S.subs[c]?'sub':'reco');return}
+  if(d.del){const c=d.del;S.picks=S.picks.filter(x=>x!==c);delete S.chosen[c];
+    if(['reco','sub'].includes(S.scr)){nextStep()}else render();return}
+  if(d.up){const i=+d.up;[S.picks[i-1],S.picks[i]]=[S.picks[i],S.picks[i-1]];render();return}
+  if(d.entered){S.entered=expEntry()+2+(+d.entered===8?8:0);go('confirm');return}
+  if(d.scen){S.scen[d.scen]=!S.scen[d.scen];render();return}
+  if(d.jump){const k=d.jump;if(['plan','confirm','alerts','go'].includes(k))ensureDemo();
+    if(k==='wait'||k==='plan')S.entered=null;
+    if(k==='confirm'&&S.entered==null)S.entered=expEntry()+2;
+    go(k);return}
+  if(d.reset){Object.assign(S,{scr:'wait',hist:[],picks:[],subs:{},chosen:{},quick:{},page:{},step:0,entered:null,scen:{delay:false,gate:false,late:false}});render();window.scrollTo({top:0});return}
+  if(d.go){go(d.go)}
+});
+render();
+</script>
