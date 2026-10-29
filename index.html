@@ -115,6 +115,17 @@ h2{font-size:21px;margin:0;font-weight:700;text-wrap:balance;line-height:1.35}
 .warnbox b{color:var(--warn)}
 .warnbox .acts{display:flex;gap:6px;flex-wrap:wrap}
 .warnbox .acts button{border:1px solid var(--warn);background:transparent;color:var(--warn);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600}
+.qbox{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:13px}
+.qtrack{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.qtrack span{font-size:11px;color:var(--muted);text-align:center;padding-top:8px;border-top:3px solid var(--line)}
+.qtrack span.done{border-color:var(--brand-2);color:var(--brand)}
+.qtrack span.cur{border-color:var(--brand);color:var(--ink);font-weight:700}
+.zz{display:flex;gap:3px}.zz i{flex:1;height:8px;border-radius:2px;background:var(--line)}.zz i.on{background:var(--brand)}
+.toast{background:var(--ok-soft);color:var(--ok);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600}
+.via{display:inline-block;font-size:11px;border-radius:4px;padding:1px 6px;background:var(--brand-soft);color:var(--brand);font-weight:700;margin-left:4px}
+.kakao{background:#fee500;color:#191600;border:0}
+.kcard{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.kcard ul{margin:0;padding-left:18px;color:var(--body);display:flex;flex-direction:column;gap:4px}
 .okbadge{display:inline-block;font-size:11px;border-radius:4px;padding:1px 6px;margin-left:6px;background:rgba(255,255,255,.2);font-weight:600}
 .sticky{position:sticky;bottom:0;background:var(--surface);margin:0 -20px -22px;padding:12px 20px 16px;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px}
 .sheet-bg{position:absolute;inset:0;background:rgba(10,12,20,.5);display:flex;align-items:flex-end;z-index:5}
@@ -141,7 +152,7 @@ h2{font-size:21px;margin:0;font-weight:700;text-wrap:balance;line-height:1.35}
   <div class="phone" id="phone"></div>
   <div class="demo">
     <b>시연 상황 바꿔 보기</b>
-    <div>가상 항공편 XX123 · 09:00 출발 · 탑승 시작 08:30 · 23번 탑승구 · 07:27 5번 출국장 동편에서 QR 스캔</div>
+    <div>가상 항공편 XX123 · 09:00 출발 · 탑승 시작 08:30 · 23번 탑승구 · 07:27 5번 출국장 동편 입구 앞 줄에서 QR 스캔</div>
     <div class="chips" id="scen"></div>
     <div class="chips" id="jump"></div>
   </div>
@@ -196,11 +207,12 @@ const P=[
 const byId=id=>P.find(p=>p.id===id);
 
 /* ---------- state ---------- */
-const S={scr:'wait',hist:[],picks:[],subs:{},chosen:{},quick:{},page:{},step:0,entered:null,fav:'cam',
+const QST=[{name:'출국장 입구 앞 줄',btn:'출국장에 들어왔어요'},{name:'보안검색 줄',btn:'보안검색 끝났어요'},{name:'출국심사 줄',btn:'면세구역에 들어왔어요'}];
+const S={q:{st:0,t:SCAN,rem:18,pt:0,via:'qr',kakao:false,toast:''},scr:'wait',hist:[],picks:[],subs:{},chosen:{},quick:{},page:{},step:0,entered:null,fav:'cam',
   scen:{delay:false,gate:false,late:false}};
 const board=()=>BOARD0+(S.scen.delay?20:0);
 const gate=()=>GATES[S.scen.gate?31:23];
-const expEntry=()=>S.scen.late?475:EXP_ENTRY;
+const expEntry=()=>S.q.t+S.q.rem+(S.scen.late?10:0);
 const entryT=()=>S.entered!=null?S.entered:expEntry();
 const hm=m=>{m=Math.round(m);const h=Math.floor(m/60)%24,mm=((m%60)+60)%60;return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0')};
 const fl5=m=>Math.max(0,Math.floor(m/5)*5);
@@ -304,18 +316,35 @@ function issues(pl){
   return [...new Set(out)].slice(0,2).join('');
 }
 
+function qbox(){const q=S.q;
+  return `<div class="qbox"><div class="row"><b style="color:var(--ink)">지금 어디쯤이세요?</b><span class="tag num">${hm(q.t)} 기준</span></div>
+  <div class="qtrack">${['입구 앞 줄','보안검색','출국심사','면세구역'].map((n,i)=>`<span class="${i<q.st?'done':i===q.st?'cur':''}">${n}</span>`).join('')}</div>
+  ${q.st===1?`<div class="row"><span>꺾이는 줄 6곳 중 <b>${q.pt}곳</b> 지남</span></div><div class="zz">${[0,1,2,3,4,5].map(i=>`<i class="${i<q.pt?'on':''}"></i>`).join('')}</div>`:''}
+  ${q.toast?`<div class="toast">${q.toast}</div>`:''}
+  <button class="btn sm" data-adv="1">${QST[q.st].btn}</button>
+  <span class="tag">버튼은 새로고침과 같아요. 줄을 따라가다 다음 안내판에 휴대폰을 대거나 QR을 찍어도 바로 다시 계산돼요.</span></div>`}
+function advance(){const q=S.q;
+  if(q.st===0){Object.assign(q,{st:1,t:453,rem:12,pt:0,toast:'07:33 출국장 진입 · 보안검색 줄 기준으로 다시 계산했어요'});return 'stay'}
+  if(q.st===1){Object.assign(q,{st:2,t:462,rem:3,pt:6,toast:'07:42 보안검색 통과 · 출국심사 줄 기준으로 다시 계산했어요'});return 'stay'}
+  S.entered=q.t+q.rem+2+(S.scen.late?10:0);q.toast='';return 'entered'}
+function tagNext(){const q=S.q;q.via='nfc';
+  if(q.st===0){Object.assign(q,{st:1,pt:2,rem:9,t:456})}
+  else if(q.st===1&&q.pt<6){q.pt=Math.min(6,q.pt+2);q.rem=3+9*(1-q.pt/6);q.t=453+(12-q.rem)}
+  else return;
+  q.toast=`${hm(q.t)} NFC 태그 · 보안검색 꺾이는 줄 ${q.pt}번째 지점 기준으로 다시 계산했어요`}
 /* ---------- screens ---------- */
 const V={};
 V.wait=()=>`
- <div class="meta"><span>📍 5번 출국장 동편 · 꺾이는 두 번째 지점</span><span class="num">${hm(SCAN)} 기준</span></div>
- <div class="hero"><small>이 지점부터 남은 대기</small>
-  <div class="big num"><span>약</span>${expEntry()-SCAN}<span>분</span></div><hr>
-  <div class="row"><span>출국심사 통과 예상</span><b class="num" style="font-size:24px">${hm(expEntry())}</b></div></div>
+ <div class="meta"><span>📍 5번 출국장 동편 · ${S.q.st===0?'입구 앞 줄 3번 안내판':S.q.st===1?'보안검색 꺾이는 줄':'출국심사 줄'}<span class="via">${S.q.via==='nfc'?'NFC':'QR'}</span></span></div>
+ <div class="hero"><small>이 지점부터 면세구역까지 남은 대기</small>
+  <div class="big num"><span>약</span>${Math.round(expEntry()-S.q.t)}<span>분</span></div><hr>
+  <div class="row"><span>면세구역 진입 예상</span><b class="num" style="font-size:24px">${hm(expEntry())}</b></div></div>
+ ${qbox()}
+ <button class="btn sm kakao" data-go="alarm">${S.q.kakao?'💬 카톡으로 받는 중 ✓':'💬 카톡으로 받기 · 번호 입력 없음'}</button>
  <div class="panel">탑승권을 비추면 탑승 전 자유 시간을 계산하고, 하고 싶은 것들을 시간 안에 다 할 수 있게 동선을 짜 드려요.
   <div class="li"><span>남은 대기</span><span class="tag ok">확인 완료</span></div>
   <div class="li"><span>탑승 전 자유 시간</span><span class="tag">탑승권 필요</span></div>
   <div class="li"><span>할 일 여러 개, 순서대로 동선 짜기</span><span class="tag">탑승권 필요</span></div></div>
- <div class="spacer"></div>
  <button class="btn" data-go="pass">탑승권 비추기 ›</button>
  <button class="link" data-go="wait">남은 대기만 볼게요</button>`;
 V.pass=()=>`
@@ -379,32 +408,36 @@ V.plan=(confirm)=>{const pl=plan(stops());const dep=pl.depart;const free=fl5(bas
  <div class="map">${map(pl,confirm?'확정':'예상')}</div>
  <div class="tl">${rows.join('')}</div>
  ${pl.feasible&&spare>=10&&S.picks.length<4?`<button class="btn ghost sm" data-go="free">+ 하나 더 넣기 · 여유 ${spare}분</button>`:''}
- ${!confirm?`<div class="grid2"><button class="btn line sm" data-go="alarm">🔔 나올 시각 알림</button><button class="btn ghost sm" data-go="free">할 일 다시 고르기</button></div>
- <div class="tag">들어오시면 실제 시각으로 다시 계산해 드려요.</div>
- <div class="sticky"><span class="tag" style="flex:1">출국심사를 마치셨나요?</span><button class="btn" style="width:auto;padding:13px 30px" data-go="enter">들어왔어요</button></div>`
+ ${!confirm?`<div class="grid2"><button class="btn sm kakao" data-go="alarm">${S.q.kakao?'💬 카톡 받는 중 ✓':'💬 카톡으로 받기'}</button><button class="btn ghost sm" data-go="free">할 일 다시 고르기</button></div>
+ <div class="tag">면세구역에 들어오시면 실제 시각으로 다시 계산해 드려요.</div>
+ ${qbox()}`
  :`<div class="spacer"></div><button class="btn" data-go="alerts">머무는 동안 알림 보기 ›</button>`}`};
-V.alarm=()=>band()+`
- <h2>나올 시각마다 알려 드릴까요?</h2>
- <div class="panel">들를 곳마다 나올 시각 5분 전과 정각에 카카오 알림톡을 보내 드려요. 탑승 후 번호는 자동으로 지워져요.
-  <div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px" class="num">010-••••-••••</div></div>
- <div class="tag">알림은 선택이에요. 번호가 없어도 이 화면을 다시 열면 항상 최신 시각으로 다시 계산해 보여 드려요.</div>
- <div class="spacer"></div><button class="btn" data-go="plan">알림 받기 (시연)</button>`;
+V.alarm=()=>`
+ <h2>카카오톡으로 받을까요?</h2>
+ <div class="hint">카카오톡에서 동의 한 번이면 끝이에요. 휴대폰 번호는 입력하지 않아요.</div>
+ <div class="kcard"><b>이런 때만 보내 드려요</b><ul>
+  <li>줄의 남은 대기가 바뀌었을 때</li><li>${hm(baseDepart())} 출발 시각과 자유 시간이 정해졌을 때</li>
+  <li>들른 곳에서 나올 시각 5분 전과 정각</li><li>출발 지연·탑승구 변경 (늘어난 시간까지 계산)</li></ul>
+  <span class="tag">숫자가 바뀌거나 움직여야 할 때만 · 매장 홍보 없음 · 탑승하면 연결이 자동으로 끝나요</span></div>
+ <div class="note">받지 않아도 이 화면을 다시 열면 항상 최신 시각으로 다시 계산해 보여 드려요.</div>
+ <div class="spacer"></div><button class="btn kakao" data-kakao="1">카카오톡으로 받기 (시연)</button>
+ <button class="link" data-back="1">괜찮아요</button>`;
 V.enter=()=>V.plan(false).replace(/<div class="sticky">[\s\S]*<\/div>$/,'')+`
- <div class="sheet-bg"><div class="sheet"><span class="pill">🕒 ${hm(expEntry())} · 출국심사 통과 예상 시각</span>
+ <div class="sheet-bg"><div class="sheet"><span class="pill">🕒 ${hm(expEntry())} · 면세구역 진입 예상 시각</span>
   <h2 style="font-size:25px">들어오셨나요?</h2>
   <div class="tag" style="font-size:14px">누르신 시각부터 다시 계산해 드려요. 누르지 않으면 예상 시각대로 안내할게요.</div>
   <button class="btn" data-entered="1">들어왔어요</button><button class="btn ghost" data-go="still">아직이에요</button></div></div>`;
 V.still=()=>`
  <div class="hero"><small>아직 줄에 계신가요? 최신 대기로 다시 잡았어요</small>
   <div class="big num"><span>약</span>6<span>분</span></div><hr>
-  <div class="row"><span>출국심사 통과 예상</span><b class="num" style="font-size:24px">${hm(expEntry()+8)}</b></div></div>
+  <div class="row"><span>면세구역 진입 예상</span><b class="num" style="font-size:24px">${hm(expEntry()+8)}</b></div></div>
  <div class="panel">고르신 곳은 그대로 두고, 들어오신 시각에 머무는 시간을 다시 나눠요. 빠듯해지면 포장으로 바꾸거나 하나를 빼자고 먼저 알려 드려요.</div>
  <div class="spacer"></div><button class="btn" data-entered="8">들어왔어요</button>`;
 V.confirm=()=>V.plan(true);
 V.alerts=()=>{const pl=plan(stops());const n=[];
   pl.items.forEach((it,i)=>{const nx=pl.items[i+1];
-    n.push(`<div class="noti"><small>${hm(it.leave-5)} · 알림톡</small>5분 뒤 ${it.p.name}에서 나오실 시간이에요.</div>`);
-    n.push(`<div class="noti"><small>${hm(it.leave)} · 알림톡</small>${it.p.name}에서 나오실 시간이에요 · ${nx?`다음 ${nx.p.name}까지 도보 ${nx.walk}분`:`${gate().name} 탑승구까지 도보 ${pl.wg}분`}</div>`)});
+    n.push(`<div class="noti"><small>${hm(it.leave-5)} · 카카오톡</small>5분 뒤 ${it.p.name}에서 나오실 시간이에요.</div>`);
+    n.push(`<div class="noti"><small>${hm(it.leave)} · 카카오톡</small>${it.p.name}에서 나오실 시간이에요 · ${nx?`다음 ${nx.p.name}까지 도보 ${nx.walk}분`:`${gate().name} 탑승구까지 도보 ${pl.wg}분`}</div>`)});
   return band()+`<h2>머무는 동안 이렇게 알려 드려요</h2>${n.join('')}
   ${S.scen.delay?`<div class="noti alert"><small>변경 · 출발 지연</small><b>출발이 20분 늦어졌어요. 머무는 시간을 다시 나눴어요.</b> 탑승구로는 ${hm(pl.depart)}까지 출발하시면 돼요.</div>`:''}
   ${S.scen.gate?`<div class="noti alert"><small>변경 · 탑승구</small><b>탑승구가 31번으로 바뀌었어요.</b> 걷는 거리가 늘어 ${hm(pl.depart)}까지 출발하셔야 해요.</div>`:''}
@@ -428,7 +461,7 @@ function render(){
   phone.innerHTML=`<div class="top"><span style="display:flex;align-items:center">${S.hist.length?'<button class="back" data-back="1" aria-label="뒤로">‹</button>':''}<span class="logo">TIMEPASS</span></span><span class="lang">🌐 한국어 · EN · 中文 · 日本語</span></div>
    <div class="steps"><div class="bar" style="width:calc((100% - 54px) * ${st/2})"></div>${['대기 줄','면세구역','탑승구'].map((n,i)=>`<div class="step ${i===st?'on':i<st?'done':''}"><span class="dot"></span>${n}</div>`).join('')}</div>
    <div class="screen">${V[k]()}</div>`;
-  document.getElementById('scen').innerHTML=[['delay','출발 20분 지연'],['gate','탑승구 31번으로 변경'],['late','출국심사 늦어짐 (+10분)']].map(([k,l])=>`<button class="${S.scen[k]?'on':''}" data-scen="${k}" aria-pressed="${S.scen[k]}">${l}</button>`).join('');
+  document.getElementById('scen').innerHTML=[['delay','출발 20분 지연'],['gate','탑승구 31번으로 변경'],['late','출국심사 늦어짐 (+10분)']].map(([k,l])=>`<button class="${S.scen[k]?'on':''}" data-scen="${k}" aria-pressed="${S.scen[k]}">${l}</button>`).join('')+`<button data-tag="1">📶 다음 안내판에 휴대폰 대기 (NFC)</button>`;
   document.getElementById('jump').innerHTML=[['wait','남은 대기'],['free','할 일 고르기'],['plan','내 동선'],['confirm','들어온 뒤'],['alerts','알림'],['go','출발']].map(([k,l])=>`<button class="${S.scr===k?'on':''}" data-jump="${k}">${l}</button>`).join('')+`<button data-reset="1">처음부터</button>`;
 }
 function go(s,push=true){if(push&&S.scr!==s)S.hist.push(S.scr);S.scr=s;render();window.scrollTo({top:0})}
@@ -453,13 +486,16 @@ document.addEventListener('click',e=>{
   if(d.del){const c=d.del;S.picks=S.picks.filter(x=>x!==c);delete S.chosen[c];
     if(['reco','sub'].includes(S.scr)){nextStep()}else render();return}
   if(d.up){const i=+d.up;[S.picks[i-1],S.picks[i]]=[S.picks[i],S.picks[i-1]];render();return}
+  if(d.adv){const r=advance();if(r==='entered')go('confirm');else render();return}
+  if(d.tag){tagNext();if(!['wait','plan'].includes(S.scr))go('wait');else render();return}
+  if(d.kakao){S.q.kakao=true;S.scr=S.hist.pop()||'wait';render();return}
   if(d.entered){S.entered=expEntry()+2+(+d.entered===8?8:0);go('confirm');return}
   if(d.scen){S.scen[d.scen]=!S.scen[d.scen];render();return}
   if(d.jump){const k=d.jump;if(['plan','confirm','alerts','go'].includes(k))ensureDemo();
-    if(k==='wait'||k==='plan')S.entered=null;
+    if(k==='wait'||k==='plan'){S.entered=null;}
     if(k==='confirm'&&S.entered==null)S.entered=expEntry()+2;
     go(k);return}
-  if(d.reset){Object.assign(S,{scr:'wait',hist:[],picks:[],subs:{},chosen:{},quick:{},page:{},step:0,entered:null,scen:{delay:false,gate:false,late:false}});render();window.scrollTo({top:0});return}
+  if(d.reset){Object.assign(S,{q:{st:0,t:SCAN,rem:18,pt:0,via:'qr',kakao:false,toast:''},scr:'wait',hist:[],picks:[],subs:{},chosen:{},quick:{},page:{},step:0,entered:null,scen:{delay:false,gate:false,late:false}});render();window.scrollTo({top:0});return}
   if(d.go){go(d.go)}
 });
 render();
